@@ -1,0 +1,41 @@
+##Time series clusting
+#convert to ts, and then impute data
+fiveYears <- ts(as.matrix(fiveYears))
+interpolate <- na.interpolation(fiveYears)
+locf <- na.locf(fiveYears)
+seasadj <- na.seadec(fiveYears)
+
+fiveYears <- t(as.matrix(locf))
+#corelllation dissimilarity
+corr_dis <- diss(fiveYears, "COR")
+summary(corr_dis)
+##which are the most different
+sort(rowMeans(as.matrix(corr_dis)))
+#cluster
+C1 <- hclust(corr_dis)
+plot(C1)
+
+#disimmilarity by "frECHET" DISTANCE
+frechet_dis <- diss(fiveYears, "FRECHET")
+#cluster 
+C2 <- hclust(frechet_dis)
+plot(C2)
+
+##Dynamic time warpiong
+dtwarp <- diss(fiveYears, "DTWARP")
+#cluster
+C3 <- hclust(dtwarp)
+plot(C3)
+
+
+##dissimmilarity by Integrated Periodgram Distance
+int.perp <- diss(fiveYears, "INT.PER")
+#cluster
+C4 <- hclust(int.perp)
+plot(C4)
+
+##Imputation
+fiveYears <- ts(as.matrix(fiveYears))
+interpolate <- na.interpolation(fiveYears)
+locf <- na.locf(fiveYears)
+seasadj <- na.seadec(fiveYears)
