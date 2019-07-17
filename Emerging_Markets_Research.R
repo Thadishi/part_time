@@ -64,7 +64,6 @@ ImputeData <- function(tsObject){
   return(tsFile)
 }
 
-
 glsModel <- function(data_frame, variables){
   check.packages('nlme')
   "data <- data.frame(row.names = 1:nrow(data_frame))
@@ -77,21 +76,6 @@ glsModel <- function(data_frame, variables){
   
   return(model)
 }
-
-
-print("Enter the excel file name")
-file_in = F
-while(file_in == F){
-  excel_file <- readline('Enter the name of the excel file in question: ')
-  if(file.exists(excel_file) == T){
-    file_in = T
-  } else{
-    print('Error: file not in folder')
-  }
-}
-print("Does your excel file have multiple sheets?")
-howManySheet <- readline("IS there more than one sheet?(Yes/No): ")
-
 
 ##corellation function
 get_lower_tri <- function(matrice){
@@ -175,7 +159,7 @@ stepWise <- function(DF, variable){
 }
 OLS_step_best <- function(DF, wb, variable, y_variable){
   #wb <- createWorkbook()
-
+  
   print('Which of the following variables do you want to use as your
         Y variable (making the rest as X variables)?')
   col_names <- colnames(DF)
@@ -250,7 +234,7 @@ OLS_step_best <- function(DF, wb, variable, y_variable){
   mod1_DF['AIC'] <- as.numeric(subset1_extra$`Model 1`[len2])
   
   #besttp3
- " new_Mod2 <- lm(Y~DF[,varNums3])
+  " new_Mod2 <- lm(Y~DF[,varNums3])
   bestStep3 <- summary(new_Mod2)
   tidy_B3 <- tidy(bestStep3$coef)
   
@@ -269,9 +253,9 @@ OLS_step_best <- function(DF, wb, variable, y_variable){
                   bestSubset1=tidy_Best,extra_best = mod_DF, bestsubset2 = tidy_B2,extra_best1 = mod1_DF)
   ##if there's more than 5 variables
   "df_list <- list(stepwise = tidy_step, extra_step = newDF,
-                  bestSubset1=tidy_Best,extra_best = mod_DF,
-                  bestsubset2 = tidy_B2,extra_best1 = mod1_DF,
-                  bestSubset3=tidy_B3,extra_best2 = mod2_DF)"
+  bestSubset1=tidy_Best,extra_best = mod_DF,
+  bestsubset2 = tidy_B2,extra_best1 = mod1_DF,
+  bestSubset3=tidy_B3,extra_best2 = mod2_DF)"
   
   #wb <- createWorkbook()
   addWorksheet(wb, paste('ModelSelection', variable, sep = '_'))
@@ -335,38 +319,21 @@ make_stationary <- function(dataF){
   
   return(newDF)
 }
-##cluster analysis dataframe
-cor_clustering <- function(dataF){
-  
-  ##First transpose the data
-  state <- t(as.matrix(dataF))
-  
-  ##calculate a dissimilarity matrix with corellation
-  cor_rel <- diss(state, 'COR')
-  
-  ##Do the clustering
-  corr_clust <- hclust(cor_rel, method = 'average')
-  
-  ##plot of dendo
-  dendo <- plot(corr_clust)
-  return(dendo)
-}
 
-###DTW clustering
-dtw_clustering <- function(dataF){
-  #First transpose the data
-  state <- t(as.matrix(dataF))
-  
-  ##calculate a dissimilarity matrix with corellation
-  dtw_diss <- diss(state, 'DTWARP')
-  
-  ##Do the clustering
-  dtw_clust <- hclust(dtw_diss,method = 'centroid')
-  
-  ##plot of dendo
-  dendo <- plot(dtw_clust)
-  return(dendo)
+
+print("Enter the excel file name")
+file_in = F
+while(file_in == F){
+  excel_file <- readline('Enter the name of the excel file in question: ')
+  if(file.exists(excel_file) == T){
+    file_in = T
+  } else{
+    print('Error: file not in folder')
+  }
 }
+print("Does your excel file have multiple sheets?")
+howManySheet <- readline("IS there more than one sheet?(Yes/No): ")
+
 
 #if(howManySheet == 'Yes')
 if(howManySheet == 'Yes'){
@@ -561,46 +528,6 @@ if(howManySheet == 'Yes'){
   }
   
   
-  print("The distance measure used here is Dynamic Time warping")
-  print("corellation measures the similarity of variables using the corellation")
-  print("DTW measures the movement over time, whether the occilations, the ridges and troughs are similar")
-  print("the goal of clustering is to group items in terms of how similar they are, DTW groups them based on how similarly they move")
-  print("corellation measures whether these are corellated or not.")
-  
-  ##DTW clustering 
-  for (i in 1:length(regions)){
-    state <- scaled_imp[regions[i]]
-    ##fill missing values
-    seasadj <- na.seadec(state)
-    dtw_clustering(seasadj)
-  }
-  
-  
-  
-  print("Forecasting")
-  for_cast <- readline('would you like to do a forecast?: ')
-  if(for_cast == 'Yes' || for_cast == 'yes'){
-    print("this forecasts data using time series linear modelling an R function")
-    ##Model with time series components - #trend and seasonality
-    ##The CDS affected by Trend and seasonality
-    starting_year <- as.numeric(readline("forecast prediction from which year?: "))
-    periods <- as.numeric(readline("How many periods to forecast: "))
-    for(i in 1:length(regions)){
-      tsOb <- ts(count_dict[regions[i]], start = starting_year, frequency = freq_num)
-      fillna <- na.seadec(tsOb, algorithm = "interpolation")
-      fore_casting(fillna, starting_year, periods)
-    }
-    
-    
-    
-    ##Selectinf the number of variables to ue for the code and stuff
-    ##Test whether its's stationary, after differncing
-    for (i in 1:length(regions)){
-      datum <- scaled_imp[regions[i]]
-      var_forecast(datum)
-    }
-  }
-  
   
 } else if(howManySheet == 'No'){
   
@@ -685,42 +612,7 @@ if(howManySheet == 'Yes'){
   }
   saveWorkbook(workBook, fileToSave)
   
-  print("clustering the data")
-  dtw_clustering(scaleDF)
   
-  print("Forecasting")
-  for_cast <- readline('would you like to do a forecast?: ')
-  if(for_cast == 'Yes' || for_cast =='yes'){
-    workB <- createWorkbook()
-    ###Different kind of forecasting
-    print("Forecasting with seasonality and trend")
-    starting_year <- as.numeric(readline("forecast prediction from which year?: "))
-    periods <- as.numeric(readline("How many periods to forecast: "))
-    
-    col_names <- colnames(xl_data)
-    fore_dict <- fore_casting(xl_data, starting_year, periods)
-    for(j in 1:length(col_names)){
-      #addWorksheet(workB, paste(j, 'forecast', sep = '_'))
-      addWorksheet(workB, col_names[j])
-      writeData(workB, col_names[j], fore_dict[col_names[j]])
-    }
-    ###Different kind of forecasting
-    addWorksheet(workB, 'forecast_regression')
-    print("forecasting, CDS as the predicted variable")
-    fore_predict(xl_data)
-    writeData(workB, 'forecast_regression', fore_predict(scaleDF))
-    file_out = T
-    while(file_out == T){
-      save_file <- readline('Save your file as: ')
-      save_file <- paste(save_file, 'xlsx',sep = '.')
-      if(file.exists(save_file) == T){
-        print('Filename already exists')
-      } else{
-        file_out = F
-      }
-    }
-    saveWorkbook(workB, save_file)
-  }
   detach('package:openxlsx', unload = T)
 
   ##heatmap of alll all all all all alla all a
