@@ -439,7 +439,6 @@ if(howManySheet == 'Yes'){
   for(i in 1:length(sheetNames)){
     var_dict$set(sheetNames[i], xts(var_dict[sheetNames[i]][,-1], order.by = as.Date(var_dict[sheetNames[i]][,1], "%Y-%m-%d")))
     
-    
     country <- var_dict[sheetNames[i]]
     
     ##new datafram
