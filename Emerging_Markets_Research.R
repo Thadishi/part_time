@@ -63,8 +63,8 @@ ImputeData <- function(tsObject){
   
   return(tsFile)
 }
-
-glsModel <- function(data_frame, variables){
+##Generalised least squarex
+glsModel <- function(data_frame){
   check.packages('nlme')
   "data <- data.frame(row.names = 1:nrow(data_frame))
   colNames <- colnames(data_frame)
@@ -72,11 +72,24 @@ glsModel <- function(data_frame, variables){
   data[colNames[i]] <- data[,i]
   }"
   
-  model <- gls(data_frame[,5] ~ data_frame[,1]+data_frame[,2]+data_frame[,3]+data_frame[,4])
+  model <- gls(data_frame[,1] ~ data_frame[,2:ncol(data_frame)])
   
   return(model)
 }
-
+#normal OLS
+modelfn <- function(data_frame){
+  modelfit <- lm(data_frame[,1]~data_frame[,2:ncol(data_frame)])
+  
+  fn = step(modelfit)
+  
+  return(modelfit)
+}
+#differnced OLLS
+modelfndiff <- function(data_frame){
+  differenced <- diff(data_frame)
+  
+  modeldiff <- lm(differenced[,1] ~ differenced[,2:ncol(differenced)])
+}
 ##corellation function
 get_lower_tri <- function(matrice){
   matrice[upper.tri(matrice)] <- NA
@@ -116,7 +129,7 @@ gg_heatMap <- function(place){
   
   melted <- melt(lower_part, na.rm = T)
   
-  ggheatmap <- ggplot(melted, aes(x=Var1, y=Var2, fill=value,)) + geom_tile(color = 'white') +
+  ggheatmap <- ggplot(melted, aes(x=Var1, y=Var2, fill=value)) + geom_tile(color = 'white') +
     scale_fill_gradient2(low='blue', high='red', mid='yellow',
                          midpoint = 0, limit = c(-1,1), space = 'Lab',
                          name='Pearson\nCorrelation')+ 
@@ -233,23 +246,18 @@ OLS_step_best <- function(DF, wb, variable, y_variable){
   mod1_DF['adj-R2'] <- as.numeric(subset1_extra$`Model 1`[len2-1])
   mod1_DF['AIC'] <- as.numeric(subset1_extra$`Model 1`[len2])
   
-  #besttp3
-  " new_Mod2 <- lm(Y~DF[,varNums3])
-  bestStep3 <- summary(new_Mod2)
-  tidy_B3 <- tidy(bestStep3$coef)
+  ##GLS
+  glsMod <- glsModel(DF)
+  glsSumm <- summary(glsMod)
+  tidyGLS <- tidy(glsSumm$coef)
   
-  ##extra 3
-  
-  subset2_extra <- outreg(new_Mod2)
-  len3 <- length(subset2_extra$`Model 1`)
-  mod2_DF <- data.frame(row.names = 1)
-  mod2_DF['N'] <- as.numeric(subset2_extra$`Model 1`[len3-3])
-  mod2_DF['R2'] <- as.numeric(subset2_extra$`Model 1`[len3-2])
-  mod2_DF['adj-R2'] <- as.numeric(subset2_extra$`Model 1`[len3-1])
-  mod2_DF['AIC'] <- as.numeric(subset2_extra$`Model 1`[len3])"
+  ##OLSDiff
+  olsdiff <- modelfndiff(DF)
+  olsdiffcoefs <- olsdiff$coefficients
+  tidyDiff <- tidy(olsdiffcoefs)
   #write to excel
   
-  df_list <- list(stepwise = tidy_step, extra_step = newDF,
+  df_list <- list(glsModel = tidyGLS, stepwise = tidy_step, extra_step = newDF,
                   bestSubset1=tidy_Best,extra_best = mod_DF, bestsubset2 = tidy_B2,extra_best1 = mod1_DF)
   ##if there's more than 5 variables
   "df_list <- list(stepwise = tidy_step, extra_step = newDF,
@@ -361,7 +369,7 @@ if(howManySheet == 'Yes'){
   }
   
   ##the periodicy of the data
-  print("Is it quarterly or monthnly or annually?")
+  print("Is it quarterly or monthly or annually?")
   bool_val <- F
   while(bool_val != T){
     freq_var <- readline("Enter whether its a 'Quarter', a 'Month' or an 'Annual' data: ")
@@ -431,13 +439,13 @@ if(howManySheet == 'Yes'){
     scaleDF<- xts(scaleDF[,-1], order.by=as.Date(scaleDF[,1], "%Y-%m-%d"))
     scaleDF <- ts(scaleDF, start = starting_year, frequency = freq_num)
     
-    scaled_imp$set(regions[i], scaleDF)
+    #scaled_imp$set(regions[i], scaleDF)
     
   }
   
   ##convert variable dictionary to xts then standardize
   for(i in 1:length(sheetNames)){
-    var_dict$set(sheetNames[i], xts(var_dict[sheetNames[i]][,-1], order.by = as.Date(var_dict[sheetNames[i]][,1], "%Y-%m-%d")))
+    var_dict$set(sheetNames[i], xts(var_dict[sheetNames[i]][,-1], order.by = as.Date(var_dict[sheetNames[i]][,1], '%Y-%m-%d')))
     
     country <- var_dict[sheetNames[i]]
     
@@ -449,20 +457,14 @@ if(howManySheet == 'Yes'){
       
       nuDF[regions[j]] <- vari
     }
-    nuDF <- xts(nuDF[,-1], order.by = as.Date(nuDF[,1], "%Y-%m-%d"))
+    nuDF <- xts(nuDF[,-1], order.by = as.Date(nuDF[,1], '%Y-%m-%d'))
     nuDF <- ts(nuDF, start = starting_year, frequency = freq_num)
   }
   
   
   
-  ##compound plot
-  for(i in 1:length(regions)){
-    state <- scaled_imp[regions[i]]
-    print(compound_ts(state) + ggtitle(regions[i]))
-  }
-  
   print("IS the data stationary?, Thw following tests whether the data has unit roots or not")
-  print("If p-value is greatr than 0.05 or for augmented dickey, 0.01 - you need to difference to make stationary")
+  print("If p-value is greater than 0.05 or for augmented dickey, 0.01 - you need to difference to make stationary")
   ##Augmented Dickey Fuller.
   ##Test whether it is stationary - constant mean and variace, 
   ##The residuals move around mean of 0  
@@ -470,11 +472,6 @@ if(howManySheet == 'Yes'){
     print(regions[i])
     state <- scaled_imp[regions[i]]
     print(augmented_dickey(state))
-  }
-  print("based on the outcome, decide whether to make stationary")
-  print('difference the data')
-  for(i in 1:length(regions)){
-    scaled_imp$set(regions[i], diff(scaled_imp[regions[i]]))
   }
   
   print("Corellation matrix for a country variables")
@@ -505,26 +502,6 @@ if(howManySheet == 'Yes'){
   ##remove the package
   detach('package:openxlsx', unload = T)
   
-  check.packages('TSclust')
-  print("cluster analysis")
-  print("cluster countries by variables")
-  print("Decide how they move and cut the tree into how many clusters you require")
-  ###Clustering clustering
-  #cluster the regions
-  #library(dendextend)
-  for(i in 1:length(sheetNames)){
-    varTS <- ts(var_dict[sheetNames[i]], start = starting_year, frequency = freq_num)
-    
-    varTS <- na.seadec(varTS)
-    
-    varTS <- t(as.matrix(varTS))
-    
-    varTDW <- diss(varTS, 'DTWARP')
-    
-    ##clustr regions
-    dtw_clust <- hclust(varTDW,method = 'centroid')
-    plot(dtw_clust,main=sheetNames[i])
-  }
   
   
   
