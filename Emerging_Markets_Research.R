@@ -12,8 +12,8 @@ check.packages <- function(pkg){
 }
 
 
-packages <- c('readxl','rJava', 'xts','container', 'dint', 'vars', 'astsa', 'quantmod', 'TSclust',
-              'forecast', 'imputeTS', 'tseries', 'TTR', 'ggplot2', 'reshape2', 'leaps', 'pracma', 
+packages <- c('rJava', 'xts','container', 'dint', 'vars', 'astsa', 'quantmod',
+              'forecast', 'tseries', 'TTR', 'ggplot2', 'leaps', 'pracma', 
               'broom', 'xlsx', 'lmtest', 'tibble', 'outreg')
 check.packages(packages)
 
@@ -33,7 +33,7 @@ convertToXTS <- function(excel_file){
   fileRead = read.excel.file(excel_file)
   fileRead = as.data.frame(fileRead)
   
-  check.packages('xts')
+  check.packages(c('readxl','xts'))
   fileRead <- xts(fileRead[,-1], order.by = as.Date.POSIXct(fileRead[,1], "%Y-%m-%d"))
   
   return(fileRead)
@@ -72,7 +72,8 @@ glsModel <- function(data_frame){
   data[colNames[i]] <- data[,i]
   }"
   
-  model <- gls(data_frame[,1] ~ data_frame[,2:ncol(data_frame)])
+  model <- gls(data_frame[,1] ~ data_frame[,2:ncol(data_frame)],
+               method = "ML")
   
   return(model)
 }
@@ -92,6 +93,7 @@ modelfndiff <- function(data_frame){
 }
 ##corellation function
 get_lower_tri <- function(matrice){
+  
   matrice[upper.tri(matrice)] <- NA
   
   return (matrice)
@@ -106,6 +108,7 @@ decomposition <- function(states){
 }
 ##Ditance matrix
 diss_mat <- function(dataF){
+  check.packages('TSclust')
   mat_stat <- t(as.matrix(dataF))
   
   dtw_diss <- diss(mat_stat, 'DTWARP')
@@ -123,6 +126,7 @@ corr_matrix <- function(dataF){
 }
 ##This is a heatmap of a correlation matrix
 gg_heatMap <- function(place){
+  check.packages(c('reshape2','ggplot2'))
   xx <- round(cor(place),2)
   
   lower_part <- get_lower_tri(xx)
@@ -148,7 +152,7 @@ compound_ts <- function(DF){
 ##Least squares regression
 ##pass in dataframe as an argument plus workbook object
 bestSubsets <- function(DF, variable){
-  
+  check.packages('leaps')
   Y <- DF[,1]
   X <- DF[,2:ncol(DF)]
   
